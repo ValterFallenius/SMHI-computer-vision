@@ -1,2 +1,2 @@
-# SMHI-computer-vision
-Project for SMHI to digitize handwritten weather journals using deep neural networks.
+# project_meteo
+Digitize weather data written by hand.
