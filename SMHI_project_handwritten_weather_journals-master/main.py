@@ -55,7 +55,7 @@ def main(path_book,POPPLER_PATH,num_book=0,mode=3):
         choose_cases=[row_1[:, None],col_1,row_2[:, None],col_2]
         size_case =[2,1.2,2,1.5] # size of each case [2,2,2,2] is the standard case
         create_case(path_book,POPPLER_PATH,WIND_LABEL_PATH,choose_cases,size_case ,num_book,pages=[2,-1])
-
+    
     if mode==2:
         pdf_name = path_book.split("\\")[-1]
         directory = os.path.join(NOLABEL_PATH,pdf_name[:-4])
@@ -70,11 +70,11 @@ def main(path_book,POPPLER_PATH,num_book=0,mode=3):
         choose_cases=[row_1[:, None],col_1,row_2[:, None],col_2]
         size_case =[2,1.2,2,1.5] # size of each case [2,2,2,2] is the standard case
         create_case(path_book,POPPLER_PATH,directory,choose_cases,size_case ,num_book,pages=[2,-1], LABELLING=False)
-
-
-
-
-
+   
+    
+    
+    
+    
     if(mode==3):
         # Select if new training, validation and test sets should be created. If so, specify the sizes.
         new_sets = True
@@ -124,7 +124,7 @@ def main(path_book,POPPLER_PATH,num_book=0,mode=3):
         os.chdir(new_cwd)
         print("New CWD:", os.getcwd())
         os.system("python create_csv_file.py")
-
+        
 
     return 0
 
