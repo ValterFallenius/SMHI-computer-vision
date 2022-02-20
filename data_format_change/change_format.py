@@ -41,17 +41,14 @@ def create_sets(n_train: int, n_val: int, n_test: int) -> None:
     #path = '../pipeline/label'
     #path = './validation'
     # Path to label directory (where the pictures are located).
-    path = '.\pipeline\label_old'
+    path = '.\pipeline\label'
     # Path to directory where pictures with new labels will be located. Delete old files each time new sets are created.
-    #path2 = './data_format_change/washington/data/line_images_normalized'
-    path2 = './Open Source Neural Network/raw/washington/data/line_images_normalized'
+    path2 =  './data_format_change/washington/data/line_images_normalized'
     for file in os.listdir(path2):
         os.remove(os.path.join(path2, file))
     # Paths to ground truths and sets.
-    #path3 ='./data_format_change/washington/ground_truth/'
-    #path4 ='./data_format_change/washington/sets/cv1'
-    path3 = './Open Source Neural Network/raw/washington/ground_truth'
-    path4 = './Open Source Neural Network/raw/washington/sets/cv1'
+    path3 ='./data_format_change/washington/ground_truth/'
+    path4 ='./data_format_change/washington/sets/cv1'
 
     # List all files in the label directory.
     files = os.listdir(path)

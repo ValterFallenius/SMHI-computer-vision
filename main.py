@@ -1,12 +1,13 @@
 import numpy as np
 import os
 import sys
-import subprocess
 sys.path.insert(1, './pipeline/')
-sys.path.append("./Open Source Neural Network/src")
 from  create_data import create_case
-import data_format_change.change_format
-from main_v2 import main as htr_main
+import data_format_change.change_format as change_format
+# Required for mode 4:
+sys.path.append("./Open Source Neural Network/src")
+from main_v2 import main as htr_main   # HTR Network's main script but made into a single function
+
 
 
 
@@ -26,9 +27,9 @@ def main(path_book,POPPLER_PATH,num_book=0,mode=3):
 
         mode == 0: Label data with numbers with "769.5", "+15.0" etc.
         mode == 1: Label data wind with "NW", "S" etc.
-        mode == 2: Train the neural network.
+        mode == 2: Create new training, validation and test sets.
         mode == 3: Transform PDF to JPG for a book.
-        mode == 4: Transform the data to a hdf5 file.
+        mode == 4: Transform the data to a hdf5 file. (NOT WORKING AT THE MOMENT)
     '''
 
     NUMBER_LABEL_PATH = "./pipeline/label/"
@@ -56,13 +57,11 @@ def main(path_book,POPPLER_PATH,num_book=0,mode=3):
     if(mode==2):
         # Select if new training, validation and test sets should be created. If so, specify the sizes.
         new_sets = True
-        n_train = 50
-        n_val = 40
-        n_test = 30
+        n_train = 10
+        n_val = 10
+        n_test = 10
         if new_sets:
-            data_format_change.change_format.create_sets(n_train, n_val, n_test)
-        # Code to train the network
-        # ------ here -------------
+            change_format.create_sets(n_train, n_val, n_test)
     if mode==3:
         pdf_name = path_book.split("\\")[-1]
         directory = os.path.join(NOLABEL_PATH,pdf_name[:-4])
@@ -79,10 +78,15 @@ def main(path_book,POPPLER_PATH,num_book=0,mode=3):
         create_case(path_book,POPPLER_PATH,directory,choose_cases,size_case ,num_book,pages=[2,-1], LABELLING=False)
 
     if mode==4:
+        # THIS MODE IS NOT WORKING RIGHT NOW. TRANSFORMATION NEEDS TO BE DONE DIRECTLY FROM THE HTR NETWORK'S MAIN.PY
         cwd = os.getcwd()
-        htr_main("washington", transform="True")
-
-
+        # Changing directories might be necessary to fix paths and imports in main_v2.py. However, other problems arise.
+        new_cwd = r"./Open Source Neural Network/src"
+        print("CWD:", os.getcwd())
+        os.chdir(new_cwd)
+        print("New CWD:", os.getcwd())
+        #htr_main("washington", transform="True")
+        os.system("python main.py --source=washington --transform")
 
     return 0
 

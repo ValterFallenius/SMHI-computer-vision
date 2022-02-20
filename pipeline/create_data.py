@@ -87,49 +87,52 @@ def create_case(filename,poppler_path,path_label,choose_cases,size_case,compt_bo
         table1_pos,table2_pos = l_position[0:2] # only care about 2 first tables
         table1_size,table2_size = l_size[0:2]
         if (table1_size == [6,9]) and (table2_size == [7,9]):#if we correcly get the cases
-            # reshape to double coordinate shape (row,column,coords)
-            table1_pos = np.array(table1_pos).reshape((table1_size[0],table1_size[1],4))
-            table2_pos = np.array(table2_pos).reshape((table2_size[0],table2_size[1],4))
-            # shift position of final column in table1:
-            table1_pos[2:,-1][:,1] -= 20
-            if(len(rows1)==0):
-                final_table=  [[],table2_pos]
-
-            elif(len(rows2)==0):
-                final_table=  [table1_pos, []]
-
+            if(choose_cases==[-1]):
+                get_date_from_im(l_position[0],l_position[1],fin)
             else:
-                final_table=  [table1_pos,table2_pos]
+                # reshape to double coordinate shape (row,column,coords)
+                table1_pos = np.array(table1_pos).reshape((table1_size[0],table1_size[1],4))
+                table2_pos = np.array(table2_pos).reshape((table2_size[0],table2_size[1],4))
+                # shift position of final column in table1:
+                table1_pos[2:,-1][:,1] -= 20
+                if(len(rows1)==0):
+                    final_table=  [[],table2_pos]
 
-            for table_n,table in enumerate(final_table):
-                if not np.any(table): continue #if table is empty
-                for row in np.nditer(choose_cases[2*table_n]):
-                    for col in np.nditer(choose_cases[2*table_n+1]):
-                        position = table[row,col]
-                        number = fin[int(position[0]-position[2]/size_case[0]):int(position[0]+position[2]/size_case[1]),int(position[1]-position[3]/size_case[2]):int(position[1]+position[3]/size_case[3])]
-                        key_name=encode(compt_book,pagenumber,row,col) + "_"
-                        print(key_name)
-                        im=number
+                elif(len(rows2)==0):
+                    final_table=  [table1_pos, []]
 
-                        if LABELLING == False: #if we are not labelling the image
-                            image_path = os.path.join(path_label,key_name+"nolabel"+".png")
+                else:
+                    final_table=  [table1_pos,table2_pos]
 
-                            if os.path.exists(image_path):
-                                continue
-                            imageio.imwrite(image_path,im.astype(np.uint8))
+                for table_n,table in enumerate(final_table):
+                    if not np.any(table): continue #if table is empty
+                    for row in np.nditer(choose_cases[2*table_n]):
+                        for col in np.nditer(choose_cases[2*table_n+1]):
+                            position = table[row,col]
+                            number = fin[int(position[0]-position[2]/size_case[0]):int(position[0]+position[2]/size_case[1]),int(position[1]-position[3]/size_case[2]):int(position[1]+position[3]/size_case[3])]
+                            key_name=encode(compt_book,pagenumber,row,col) + "_"
+                            print(key_name)
+                            im=number
 
-                            continue #Save image and continue
+                            if LABELLING == False: #if we are not labelling the image
+                                image_path = os.path.join(path_label,key_name+"nolabel"+".png")
 
-                        imageio.imwrite(os.path.join(path_label,"temp.png"),im.astype(np.uint8)) # save the image in a temporary file
-                        root = Tk()
-                        root.geometry('300x300+0+0') # position and size of the windows
-                        canvas = Canvas(root, width = 300, height = 300)
-                        canvas.pack()
-                        img = PhotoImage(file=os.path.join(path_label,"temp.png")) # open the temporary image
-                        canvas.create_image(20,20, anchor=NW, image=img) # show the image
-                        entry1 = Entry(root) # get input
-                        canvas.create_window(100, 200, window=entry1) # position of the input button
-                        button1 = Button(text='put value', command=lambda: save_data(entry1,key_name,root,path_label)) # call save_data
-                        canvas.create_window(100, 250, window=button1) # position of the button "put_value"
+                                if os.path.exists(image_path):
+                                    continue
+                                imageio.imwrite(image_path,im.astype(np.uint8))
 
-                        mainloop()
+                                continue #Save image and continue
+
+                            imageio.imwrite(os.path.join(path_label,"temp.png"),im.astype(np.uint8)) # save the image in a temporary file
+                            root = Tk()
+                            root.geometry('300x300+0+0') # position and size of the windows
+                            canvas = Canvas(root, width = 300, height = 300)
+                            canvas.pack()
+                            img = PhotoImage(file=os.path.join(path_label,"temp.png")) # open the temporary image
+                            canvas.create_image(20,20, anchor=NW, image=img) # show the image
+                            entry1 = Entry(root) # get input
+                            canvas.create_window(100, 200, window=entry1) # position of the input button
+                            button1 = Button(text='put value', command=lambda: save_data(entry1,key_name,root,path_label)) # call save_data
+                            canvas.create_window(100, 250, window=button1) # position of the button "put_value"
+
+                            mainloop()
