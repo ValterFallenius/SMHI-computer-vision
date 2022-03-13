@@ -24,10 +24,13 @@ from pipeline import *
 from ID import encode, decode
 # ----- LOCAL MODULES ----------
 
-def get_date(start_date, page_number, initial_page=2):
-    start_date = datetime.datetime.strptime(start_date, "%d/%m/%y")
-    end_date = start_date + datetime.timedelta(days=page_number - initial_page)
-    return end_date
+def get_date(bookname, page_number, start_month="01", start_day="01"):
+    assert (1 <= page_number <= 366), "Page number must be between [1, 366]"
+    start_year = bookname.split("_")[1]
+    start_date = start_year + "-" + start_month + "-" + start_day
+    start_date = datetime.datetime.strptime(start_date, "%Y-%m-%d")
+    date = start_date + datetime.timedelta(days=page_number-1)
+    return date.date()
 
 def save_data(entry1,key_name,root,path_label):
     x1 = entry1.get() # get the input (so the value of the case)
