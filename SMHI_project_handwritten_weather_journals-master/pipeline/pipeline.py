@@ -11,6 +11,52 @@ import gc
 import copy as CP
 from scipy.ndimage import rotate
 
+
+def convert_format(list):
+    format = [10,10]
+    new_list = np.zeros((format[0],format[1],4),dtype =np.int)
+    for i,line in enumerate(list,0):
+        for j,v in enumerate(line,0):
+            new_list[i,j,:] = np.array([v[0]-v[2]//2,v[1]-v[3]//2,v[0]+v[2]//2,v[1]+v[3]//2],dtype=np.int)
+
+    test_im=np.zeros((2000,2000))
+    for i,line in enumerate(new_list,0):
+        for j,v in enumerate(line,0):
+            test_im[v[0],v[1]]=4
+            test_im[v[2],v[3]]=1
+    # plt.figure()
+    # plt.imshow(test_im)
+    # plt.show()
+    return np.array(new_list)
+
+
+
+
+
+
+
+def remove_col(l_size,size_tables,list_pos,n_table =  0,nb_remove = 1):
+    if l_size[n_table][1] == size_tables[n_table][1]+nb_remove:
+
+        #print("[7,10] anamoly in table n°2 ... successful fixing")
+        copy = np.array(list_pos[n_table][:]).reshape((l_size[n_table][0],l_size[n_table][1],4))
+
+        copy2 =  copy[:,:-nb_remove,:].reshape(-1,4)
+        l_size[n_table][1] = size_tables[n_table][1]
+        list_pos[n_table] = copy2
+    #     for i in range(l_size[n_table][0]*nb_remove):
+    #         list_pos[n_table].remove(copy[i*l_size[n_table][1]])
+    #         l_size[n_table][1] = size_tables[n_table][1]
+    return list_pos,l_size
+def remove_line(l_size,size_tables,list_pos,n_table =  0,nb_remove = 1):
+    if l_size[n_table][0] == size_tables[n_table][0]+nb_remove:
+        copy = np.array(list_pos[n_table][:]).reshape((l_size[n_table][0],l_size[n_table][1],4))
+        copy2 =  copy[:-nb_remove,:,:].reshape(-1,4)
+        l_size[n_table][0] = size_tables[n_table][0]
+        list_pos[n_table] = copy2
+        # list_pos[n_table] = list_pos[n_table][nb_remove*l_size[n_table][1]:]
+        # l_size[n_table][0] = size_tables[n_table][0]
+    return list_pos,l_size
 def add_edge(proj):
     """Add the vertical or horizontal edges of a table
         Parameters
@@ -116,7 +162,7 @@ def sort_insertion(L,LL):
     return L
 # get position for every tab for every element of each tab
 #input binary of every line of the image
-def get_pos(binary_tables, only_top_table=False):
+def get_pos(binary_tables,size_tables, only_top_table=False):
     """get position and size for every cases in every element of each tab
         Parameters
         ----------
@@ -137,8 +183,8 @@ def get_pos(binary_tables, only_top_table=False):
     NB_TABLES = 5 # total expected number of tables
     MIN_NB_PIXELS = 400 # minimum number of pixels that an array must have to be considered as such
     L_SENSIBILITY = [1.1,1.2,1.4,1.6,1.8,2,2.2,2.4,2.6,2.8,3]# different sensitivities tested to obtain the right dimension of tables, sensitivity of 1 means very little sensitive (detected few lines) and >1 higher sensitivity (detected more lines)
-    GOOD_DIMS = [[6, 9], [7, 9], [3, 1], [5, 3], [5, 5]]# expected table dimensions
-    ACCEPTED_DIMS = [[6, 9], [7, 9], [3, 1], [5, 3], [5, 5],[8, 9]] #possible table dimensions (even if some need correction)
+    GOOD_DIMS = [[size_tables[0][0]-2,size_tables[0][1]-1],[size_tables[1][0]-2,size_tables[1][1]-1],[3, 1], [5, 3], [5, 5]]# expected table dimensions
+    ACCEPTED_DIMS = [[size_tables[0][0]-2,size_tables[0][1]-1],[size_tables[1][0]-2,size_tables[1][1]-1],[3, 1], [5, 3], [5, 5]] #possible table dimensions (even if some need correction)
     l_size3=[[] for k in range(NB_TABLES)]
     list_pos3=[[] for k in range(NB_TABLES)]
     binary_tables  = skimage.morphology.erosion(binary_tables, skimage.morphology.square(10))# increase size of line
@@ -186,14 +232,21 @@ def get_pos(binary_tables, only_top_table=False):
         list_pos=sort_insertion(list_pos,order)
         l_size=sort_insertion(l_size,order)
         print("real_size:",l_size)
-        if l_size[1] == [7,10]:
-            #print("[7,10] anamoly in table n°2 ... successful fixing")
-            copy = list_pos[1][:]
-            for i in range(7):
-                list_pos[1].remove(copy[i*10])
-            l_size[1] = [7,9]
 
-        if(len(l_size)>len(ACCEPTED_DIMS)):
+        list_pos,l_size = remove_col(l_size,size_tables,list_pos,n_table =  0,nb_remove = 1)
+        #list_pos,l_size = remove_col(l_size,size_tables,list_pos,n_table =  0,nb_remove = 2)
+        list_pos,l_size = remove_line(l_size,size_tables,list_pos,n_table =  0,nb_remove = 1)
+        #list_pos,l_size = remove_line(l_size,size_tables,list_pos,n_table =  0,nb_remove = 2)
+        list_pos,l_size = remove_col(l_size,size_tables,list_pos,n_table =  1,nb_remove = 1)
+        #list_pos,l_size = remove_col(l_size,size_tables,list_pos,n_table =  1,nb_remove = 2)
+        list_pos,l_size = remove_line(l_size,size_tables,list_pos,n_table =  1,nb_remove = 1)
+        #list_pos,l_size = remove_line(l_size,size_tables,list_pos,n_table =  1,nb_remove = 2)
+
+
+
+
+
+        if(len(l_size)>len(GOOD_DIMS)):
             list_pos2=[]
             l_size2 = []
             for k,dim in enumerate(l_size):
@@ -201,43 +254,27 @@ def get_pos(binary_tables, only_top_table=False):
                     #ACCEPTED_DIMS.remove(dim) # discard duplicates
                     list_pos2.append(list_pos[k])
                     l_size2.append(dim)
-            list_pos2=list_pos2[:5]
-            l_size2=l_size2[:5]
+            list_pos2=list_pos2[:len(GOOD_DIMS)]
+            l_size2=l_size2[:len(GOOD_DIMS)]
         else:
             list_pos2=list_pos
             l_size2 = l_size
 
         # save only correct dimension tables in list_pos3 and l_size3
         for ii in range(len(l_size2)):
-            if((l_size2[ii]==ACCEPTED_DIMS[ii]) and l_size3[ii]==[]):
+            if((l_size2[ii]==GOOD_DIMS[ii]) and l_size3[ii]==[]):
                 l_size3[ii]=l_size2[ii]
                 list_pos3[ii]=list_pos2[ii]
-        if(len(l_size2)>1):
-            if((l_size2[0]==ACCEPTED_DIMS[1]) and l_size3[0]==[]):
-                l_size3[0]=ACCEPTED_DIMS[0]
-                list_pos3[0]=list_pos2[0][9:]
-            if((l_size2[0]==ACCEPTED_DIMS[-1]) and l_size3[0]==[]):
-                l_size3[0]=ACCEPTED_DIMS[0]
-                list_pos3[0]=list_pos2[0][9*2:]
-            if((l_size2[1]==ACCEPTED_DIMS[-1]) and l_size3[1]==[]):
-                l_size3[1]=ACCEPTED_DIMS[1]
-                list_pos3[1]=list_pos2[1][9:]
 
         # If we only care about table 0 and 1 (which we do):
         if only_top_table:
-            if l_size3[0] == [6, 9] and l_size3[1] == [7, 9]:
+            if l_size3[0] == size_tables[0] and l_size3[1] == size_tables[1]:
+                print("final size:",l_size3)
                 return list_pos3,l_size3
 
         if(l_size3 == GOOD_DIMS):
             return list_pos3,l_size3
     return list_pos3,l_size3
-
-    if (len(list_pos2)==len(l_size2)):
-        pass
-
-    else:
-        print("error!!!")
-        return None
 
 def corr_rotate(image):
     """rotate the image if necessary to align with the horizontal
