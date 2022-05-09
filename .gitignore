@@ -2,6 +2,7 @@ extract_number-v2/nolabel
 preprocessing/preprocess.py
 pipeline/label_old
 pipeline/nolabel/bjoro_27
-
 *.png
 *.pdf
+*.zip
+*.npy
