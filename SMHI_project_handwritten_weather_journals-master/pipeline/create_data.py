@@ -40,6 +40,9 @@ def save_data(entry1,key_name,root,path_label):
 
 def create_case(filename,poppler_path,path_label,size_tables,choose_cases,size_case,compt_book,pages=[0,-1],LABELLING = True, ONLY_POSITION =False):
     rows1,cols1,rows2,cols2 = choose_cases
+    if "vaderbod" in filename: #where to split the image, hardcoded!!!!!!!!!!
+        MIDDLE = 1295
+    else: MIDDLE = None
     info = pdfinfo_from_path(filename, userpw=None, poppler_path=poppler_path)
     maxPages = info["Pages"]
     if pages[1]==-1 or pages[1]>maxPages:
@@ -49,7 +52,11 @@ def create_case(filename,poppler_path,path_label,size_tables,choose_cases,size_c
     for pagenumber in range(pages[0],pages[1]):
         print(f"filename: {filename}, page: {pagenumber}")
         images = convert_from_path(filename,poppler_path=poppler_path,first_page=pagenumber,last_page=pagenumber+1)
-        image = np.array(images[1],dtype=np.int16)# get a array of the page
+
+        image = np.array(images[0],dtype=np.int16)# get a array of the page
+
+        plt.imshow(image)
+        plt.show()
         image=np.sum(image,2)# convert to black and white
 
         ##remove background
@@ -58,7 +65,8 @@ def create_case(filename,poppler_path,path_label,size_tables,choose_cases,size_c
         image_filter=image-image_background #remove background
         image_filter = image_filter-np.min(image_filter) #normalize min=0
         ## correction rotation
-        image_filter=corr_rotate(image_filter) # correction rotation image
+        image_filter=corr_rotate(image_filter, middle = MIDDLE) # correction rotation image
+        og_image = np.copy(image_filter)
         ##get lines of the table
         mask_x = np.ones((1,36)) #mask for horizontal lines
         mask_y =np.ones((36,1)) #mask for vertical lines
@@ -82,7 +90,7 @@ def create_case(filename,poppler_path,path_label,size_tables,choose_cases,size_c
         fin=(255*fin/np.max(fin)).astype(np.uint8) #normalize between 0 to 255
         gc.collect()
         ##get position of cases for every tables
-        l_position,l_size = get_pos(binary_line,size_tables, True) #only pop first two tables
+        l_position,l_size = get_pos(binary_line,size_tables, only_top_table = True, original_image = og_image) #only pop first two tables
         table1_pos,table2_pos = l_position[0:2] # only care about 2 first tables
         table1_size,table2_size = l_size[0:2]
         print("size----------------",table1_size,size_tables[0],table2_size,size_tables[1])

@@ -53,7 +53,9 @@ def create_case(filename,poppler_path,path_label,choose_cases,size_case,compt_bo
     for pagenumber in range(pages[0],pages[1]):
         print(f"filename: {filename}, page: {pagenumber}")
         images = convert_from_path(filename,poppler_path=poppler_path,first_page=pagenumber,last_page=pagenumber+1)
-        image = np.array(images[1],dtype=np.int16)# get a array of the page
+        print(len(images))
+        input()
+        image = np.array(images[0],dtype=np.int16) # get a array of the page
         image=np.sum(image,2)# convert to black and white
 
         ##remove background

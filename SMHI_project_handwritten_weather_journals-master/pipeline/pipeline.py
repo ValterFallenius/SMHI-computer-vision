@@ -10,6 +10,8 @@ from scipy.ndimage import label
 import gc
 import copy as CP
 from scipy.ndimage import rotate
+import csv
+from matplotlib import patches
 
 
 def convert_format(list):
@@ -36,23 +38,30 @@ def convert_format(list):
 
 
 def remove_col(l_size,size_tables,list_pos,n_table =  0,nb_remove = 1):
-    if l_size[n_table][1] == size_tables[n_table][1]+nb_remove:
+    #print(f"table {n_table} list_pos shape before {np.array(list_pos[n_table][:]).shape}")
+    #if l_size[n_table][1] == size_tables[n_table][1]+nb_remove:
+    if True:
 
-        #print("[7,10] anamoly in table n°2 ... successful fixing")
         copy = np.array(list_pos[n_table][:]).reshape((l_size[n_table][0],l_size[n_table][1],4))
 
-        copy2 =  copy[:,:-nb_remove,:].reshape(-1,4)
-        l_size[n_table][1] = size_tables[n_table][1]
+        copy2 =  copy[:,nb_remove:,:].reshape(-1,4)
+
+
+        l_size[n_table][1] = l_size[n_table][1]-nb_remove
         list_pos[n_table] = copy2
+        #print(f"table {n_table} list_pos shape after {np.array(list_pos[n_table][:]).shape}")
     #     for i in range(l_size[n_table][0]*nb_remove):
     #         list_pos[n_table].remove(copy[i*l_size[n_table][1]])
     #         l_size[n_table][1] = size_tables[n_table][1]
+
     return list_pos,l_size
+
 def remove_line(l_size,size_tables,list_pos,n_table =  0,nb_remove = 1):
-    if l_size[n_table][0] == size_tables[n_table][0]+nb_remove:
+    #if l_size[n_table][0] == size_tables[n_table][0]+nb_remove:
+    if True:
         copy = np.array(list_pos[n_table][:]).reshape((l_size[n_table][0],l_size[n_table][1],4))
-        copy2 =  copy[:-nb_remove,:,:].reshape(-1,4)
-        l_size[n_table][0] = size_tables[n_table][0]
+        copy2 =  copy[nb_remove:,:,:].reshape(-1,4)
+        l_size[n_table][0] = l_size[n_table][0] - nb_remove
         list_pos[n_table] = copy2
         # list_pos[n_table] = list_pos[n_table][nb_remove*l_size[n_table][1]:]
         # l_size[n_table][0] = size_tables[n_table][0]
@@ -162,7 +171,7 @@ def sort_insertion(L,LL):
     return L
 # get position for every tab for every element of each tab
 #input binary of every line of the image
-def get_pos(binary_tables,size_tables, only_top_table=False):
+def get_pos(binary_tables,size_tables, only_top_table=False, original_image = None):
     """get position and size for every cases in every element of each tab
         Parameters
         ----------
@@ -173,7 +182,7 @@ def get_pos(binary_tables,size_tables, only_top_table=False):
         Returns
         -------
         list_pos3 : list
-            each element of this list is a list containing the inflormations of each box of a table.
+            each element of this list is a list containing the informations of each box of a table.
             The format of the information is:
             [vertical position [int], horizontal position [int], width [int], height [int]])
             the position is defined in relation to the position on the whole page and not in relation to the relative position of the table
@@ -183,8 +192,9 @@ def get_pos(binary_tables,size_tables, only_top_table=False):
     NB_TABLES = 5 # total expected number of tables
     MIN_NB_PIXELS = 400 # minimum number of pixels that an array must have to be considered as such
     L_SENSIBILITY = [1.1,1.2,1.4,1.6,1.8,2,2.2,2.4,2.6,2.8,3]# different sensitivities tested to obtain the right dimension of tables, sensitivity of 1 means very little sensitive (detected few lines) and >1 higher sensitivity (detected more lines)
-    GOOD_DIMS = [[size_tables[0][0]-2,size_tables[0][1]-1],[size_tables[1][0]-2,size_tables[1][1]-1],[3, 1], [5, 3], [5, 5]]# expected table dimensions
-    ACCEPTED_DIMS = [[size_tables[0][0]-2,size_tables[0][1]-1],[size_tables[1][0]-2,size_tables[1][1]-1],[3, 1], [5, 3], [5, 5]] #possible table dimensions (even if some need correction)
+    GOOD_DIMS = [[size_tables[0][0],size_tables[0][1]],[size_tables[1][0],size_tables[1][1]],[3, 1], [size_tables[2][0],size_tables[2][1]], [size_tables[3][0],size_tables[3][1]]]# expected table dimensions
+    ACCEPTED_DIMS = [[size_tables[0][0],size_tables[0][1]],[size_tables[1][0],size_tables[1][1]],[3, 1], [size_tables[2][0],size_tables[2][1]], [size_tables[3][0],size_tables[3][1]]] #possible table dimensions (even if some need correction)
+
     l_size3=[[] for k in range(NB_TABLES)]
     list_pos3=[[] for k in range(NB_TABLES)]
     binary_tables  = skimage.morphology.erosion(binary_tables, skimage.morphology.square(10))# increase size of line
@@ -206,10 +216,10 @@ def get_pos(binary_tables,size_tables, only_top_table=False):
             tab=1-l_tab[kk] # invere the image
             proj_x=np.sum(tab,1) # projection_1
             proj_y=np.sum(tab,0) # projection_2
-            # sometime edge of tab don't appear, this code can create edge in this case
+            # sometime edge of tab don't appear, this code can create edge in this case:
             proj_x =  add_edge(proj_x)
             proj_y = add_edge(proj_y)
-            proj_x = proj_x > int(np.max(proj_x)/sensibility) # we binaries projection
+            proj_x = proj_x > int(np.max(proj_x)/sensibility) # we get binaries projection
             proj_y = proj_y > int(np.max(proj_y)/sensibility)
             x_pos,x_len = get_position(proj_x) # we get position for projection
             y_pos,y_len = get_position(proj_y)
@@ -232,21 +242,27 @@ def get_pos(binary_tables,size_tables, only_top_table=False):
         list_pos=sort_insertion(list_pos,order)
         l_size=sort_insertion(l_size,order)
         print("real_size:",l_size)
+        print("wanted: ", GOOD_DIMS)
 
-        list_pos,l_size = remove_col(l_size,size_tables,list_pos,n_table =  0,nb_remove = 1)
-        #list_pos,l_size = remove_col(l_size,size_tables,list_pos,n_table =  0,nb_remove = 2)
-        list_pos,l_size = remove_line(l_size,size_tables,list_pos,n_table =  0,nb_remove = 1)
-        #list_pos,l_size = remove_line(l_size,size_tables,list_pos,n_table =  0,nb_remove = 2)
-        list_pos,l_size = remove_col(l_size,size_tables,list_pos,n_table =  1,nb_remove = 1)
-        #list_pos,l_size = remove_col(l_size,size_tables,list_pos,n_table =  1,nb_remove = 2)
-        list_pos,l_size = remove_line(l_size,size_tables,list_pos,n_table =  1,nb_remove = 1)
-        #list_pos,l_size = remove_line(l_size,size_tables,list_pos,n_table =  1,nb_remove = 2)
+        list_pos,l_size = remove_col(l_size,size_tables,list_pos,n_table =  0,nb_remove = 1) #Remove leading column
+        list_pos,l_size = remove_line(l_size,size_tables,list_pos,n_table =  0,nb_remove = 1) #Remove top row
+        list_pos,l_size = remove_line(l_size,size_tables,list_pos,n_table =  1,nb_remove = 2) #Remove top two rows
+        if l_size[3][1] == GOOD_DIMS[3][1]+1:
+            list_pos,l_size = remove_col(l_size,size_tables,list_pos,n_table =  3,nb_remove = 1)
+        if l_size[3][0] == GOOD_DIMS[3][0]+1:
+            list_pos,l_size = remove_line(l_size,size_tables,list_pos,n_table =  3,nb_remove = 1)
+        if l_size[4][0] == GOOD_DIMS[4][0]+1:
+            list_pos,l_size = remove_line(l_size,size_tables,list_pos,n_table =  4,nb_remove = 1)
 
+        print("after remove:",l_size)
 
 
 
 
         if(len(l_size)>len(GOOD_DIMS)):
+
+            print("hej len(l_size)>len(GOOD_DIMS)")
+            debug_plotter(original_image,list_pos,l_size, printer = False)
             list_pos2=[]
             l_size2 = []
             for k,dim in enumerate(l_size):
@@ -269,14 +285,19 @@ def get_pos(binary_tables,size_tables, only_top_table=False):
         # If we only care about table 0 and 1 (which we do):
         if only_top_table:
             if l_size3[0] == size_tables[0] and l_size3[1] == size_tables[1]:
+                print("Success!")
                 print("final size:",l_size3)
+                if original_image is not None:
+                    debug_plotter(original_image,list_pos3,l_size3, printer = False)
+                else:
+                    debug_plotter(binary_tables,list_pos3,l_size3, printer = False)
                 return list_pos3,l_size3
 
         if(l_size3 == GOOD_DIMS):
             return list_pos3,l_size3
     return list_pos3,l_size3
 
-def corr_rotate(image):
+def corr_rotate(image, middle = None):
     """rotate the image if necessary to align with the horizontal
         Parameters
         ----------
@@ -294,8 +315,12 @@ def corr_rotate(image):
     thresh=threshold_otsu(image)
     binary = image> thresh
     shape_im=image.shape
-    im1=image[:,:shape_im[1]//2]
-    im2=image[:,shape_im[1]//2:]
+    if middle is not None:
+        MIDDLE = middle
+    else:
+        MIDDLE = shape_im[1]//2 #Not good enough, needs improvement.
+    im1=image[:,:MIDDLE]
+    im2=image[:,MIDDLE:]
     bin1=binary[:shape_im[0]//4,:shape_im[1]//2]
     bin2=binary[:shape_im[0]//4,shape_im[1]//2:]
     shape_im1=im1.shape
@@ -348,10 +373,15 @@ def debug_plotter(image_filter,pos_list,size_list, printer = False):
     axs.set_title("image_filtered")
 
 
+    #for num_figure in range(len(pos_list)):
     for num_figure in range(len(pos_list)):
-        print("a ",size_list[num_figure][0])
-        print("b ",size_list[num_figure][1])
-        print("pos_list", len(pos_list[num_figure]))
+        try:
+            print("a ",size_list[num_figure][0])
+            print("b ",size_list[num_figure][1])
+            print("pos_list", len(pos_list[num_figure]))
+        except IndexError:
+            print("Raised index error, likely due to empty list of tables. Skipping these...")
+            continue
         for k in range(size_list[num_figure][0]*size_list[num_figure][1]):
             if printer ==True:
 
@@ -370,7 +400,16 @@ def debug_plotter(image_filter,pos_list,size_list, printer = False):
     plt.show()
 
 if __name__ == "__main__":
-    with open('test.npy', 'rb') as f:
+    all_pdfs = r"C:/Users/valte/Desktop/Python/SMHI-computer-vision/ScannedObsCorrected/"
+    table_formats = r"C:/Users/valte/Desktop/SMHI jobb/All data/ScannedObs/table_formats.csv"
+    with open(table_formats, 'r') as csvfile:
+        datareader = csv.reader(csvfile)
+        for i,csv_line in enumerate(datareader):
+            if i==0: continue
+            year, station, measure_times, rows, table1_cols, table2_cols = csv_line
+            pdf_path = os.path.join(all_pdfs,station.upper(),station+"_"+year+"_mod.pdf")
+
+    '''with open('test.npy', 'rb') as f:
         line = np.load(f)
     print(line.shape)
     plt.figure()
@@ -378,4 +417,4 @@ if __name__ == "__main__":
     plt.title("line")
     thresh=threshold_otsu(line)
     binary_tables =line > thresh
-    result = get_pos(binary_tables)
+    result = get_pos(binary_tables)'''

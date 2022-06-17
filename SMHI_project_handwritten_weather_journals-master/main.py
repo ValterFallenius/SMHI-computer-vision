@@ -9,6 +9,7 @@ sys.path.append("./Open Source Neural Network/src")
 #from main_v2 import main as htr_main   # HTR Network's main script but made into a single function
 import shutil
 import unidecode
+import csv
 
 
 def compare_name(name1,name2):
@@ -50,15 +51,6 @@ def main(path_book,POPPLER_PATH,num_book=0,mode=3,size_tables= [[9,10],[9,10]]):
     WIND_LABEL_PATH = "./pipeline/wind/"
     NOLABEL_PATH = "./pipeline/nolabel/"
 
-    if mode == 6:
-        pdf_name = path_book.split("\\")[-1]
-        directory = os.path.join(NOLABEL_PATH,pdf_name[:-4])
-        #make directory if not exist:
-        if not os.path.exists(directory):
-            os.makedirs(directory)
-        choose_cases=[[],[],[],[]]
-        size_case =[2,2,2,2] # size of each case [2,2,2,2] is the standard case
-        create_case(path_book,POPPLER_PATH,directory,size_tables,choose_cases,size_case,num_book,[2,-1],False , True)
 
     if mode==0:
         # Rows and columns to the label of table 1 and table 2.
@@ -97,7 +89,7 @@ def main(path_book,POPPLER_PATH,num_book=0,mode=3,size_tables= [[9,10],[9,10]]):
 
 
 
-    if(mode==3):
+    if mode==3:
         # Select if new training, validation and test sets should be created. If so, specify the sizes.
         new_sets = True
         n_train = 10
@@ -147,36 +139,73 @@ def main(path_book,POPPLER_PATH,num_book=0,mode=3,size_tables= [[9,10],[9,10]]):
         print("New CWD:", os.getcwd())
         os.system("python create_csv_file.py")
 
+    if mode == 6:
+        pdf_name = path_book.split("\\")[-1]
+        directory = os.path.join(NOLABEL_PATH,pdf_name[:-4])
+        #make directory if not exist:
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+        choose_cases=[[],[],[],[]]
+        size_case =[2,2,2,2] # size of each case [2,2,2,2] is the standard case
+        create_case(path_book,POPPLER_PATH,directory,size_tables,choose_cases,size_case,num_book,[0,-1],False , True)
 
     return 0
 
 
 if __name__ == "__main__":
-    FORMAT_PATHS = "./format_book/"
-
     PDF_PATHS = {"Valter": r'C:\Users\valte\Desktop\SMHI jobb\data',
                   "Pierre": r'D:\documents\meteo\data',
-                  "Juan": r'C:\Users\daeda\Documents\KTH\Project SMHI\Data'}
+                  "Juan": r'C:\Users\daeda\Documents\KTH\Project SMHI\Data'}#OLD, REMOVE
 
     POPPLER_PATHS = {"Valter": r'C:\Program Files\poppler-21.11.0\Library\bin',
                      "Pierre": r'C:\Program Files\poppler-21.11.0\Library\bin',
                      "Juan": r'C:\Users\daeda\Documents\KTH\Project SMHI\poppler-21.11.0\Library\bin'}
 
-    USER = "Pierre"
+    ALL_PDF_PATHS = {"Valter":  r"C:\Users\valte\Desktop\Python\SMHI-computer-vision\ScannedObsCorrected",
+                  "Pierre": r"",
+                  "Juan": r""}
+    TABLE_FORMAT_CSV = {"Valter": r"C:\Users\valte\Desktop\Python\SMHI-computer-vision\SMHI_project_handwritten_weather_journals-master\table_formats.csv",
+                     "Pierre": r"",
+                     "Juan": r""}
+
+
+    USER = "Valter"
     path_to_books = PDF_PATHS[USER]
     POPPLER_PATH = POPPLER_PATHS[USER]
+    all_pdf_path = ALL_PDF_PATHS[USER]
+    table_formats = TABLE_FORMAT_CSV[USER]
 
-    name_list = []
+    book_paths = []
+    table_sizes = []
+    years = []
     mode = 6
-    size_tables= [[9,10],[9,10]]
-    for k, name in enumerate(os.listdir(path_to_books)):
-        if(name[-4:]==".pdf"):
-            #file_name_list.append(os.path.join(path_to_books,name))
 
-            name_list.append([k,name])
-    print(name_list)
-    format_list = open(os.path.join(FORMAT_PATHS,'table_formats.csv'))
-    format_list2 = []
+
+
+    with open(table_formats, 'r') as csvfile:
+        datareader = csv.reader(csvfile)
+        for i,csv_line in enumerate(datareader):
+            if i==0: continue
+            year, station, measure_times, rows, table1_cols, table2_cols, rows34, table3_cols, table4_cols = csv_line
+
+            measure_times = measure_times.replace(" ","")[1:-1]
+            measure_times = measure_times.split(",")
+            try:
+                assert len(measure_times) == int(rows)
+            except AssertionError or ValueError:
+                print("Assertion or Value error, rows variable: ", rows)
+            size_table = [[int(rows),int(table1_cols)],[int(rows),int(table2_cols)], [int(rows34),int(table3_cols)],[int(rows34),int(table4_cols)]]
+            path_to_book = os.path.join(all_pdf_path,station.upper(),station+"_"+year+"_mod.pdf")
+
+            book_paths.append(path_to_book)
+            table_sizes.append(size_table)
+
+    for i, (table_size, book_path) in enumerate(zip(table_sizes, book_paths)):
+        if i<115: continue
+        answer = input(f"Read book {book_path}? yes/no")
+        if answer == "yes":
+            main(book_path, POPPLER_PATH, i, mode, table_size)
+
     for row in format_list:
         format_list2.append(row.split(";"))
         #print(row)
@@ -189,4 +218,3 @@ if __name__ == "__main__":
         print("size",size_tables)
         main(os.path.join(path_to_books,name),POPPLER_PATH,k,mode,size_tables)
         break
-
