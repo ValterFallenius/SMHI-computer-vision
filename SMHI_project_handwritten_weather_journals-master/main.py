@@ -38,9 +38,9 @@ def main(path_book,POPPLER_PATH,num_book=0,mode=3,size_tables= [[9,10],[9,10]]):
     mode : int
         Integer that decides what the main function does:
 
-        mode == 0: Label data with numbers with "769.5", "+15.0" etc.
+        mode == 0: Label data manually with numbers: "769.5", "+15.0" etc.
         mode == 1: Label data wind with "NW", "S" etc.
-        mode == 2: create prediction data (whithout label for number)
+        mode == 2: create prediction data (without label for number)
         mode == 3: Create new training, validation and test sets for training and train
         mode == 4: Create new test sets for prediction and predict
         mode == 5: save predict data into csv file
@@ -53,21 +53,18 @@ def main(path_book,POPPLER_PATH,num_book=0,mode=3,size_tables= [[9,10],[9,10]]):
 
 
     if mode==0:
-        # Rows and columns to the label of table 1 and table 2.
-        row_1=np.array([2,3,4,5])
-        row_2=np.array([3,4,5,6])
-        col_1=np.array([1,2,3,4,5,6,7,8])
-        col_2=np.array([1,2,3,4])
-        choose_cases=[row_1[:, None],col_1,row_2[:, None],col_2]
+        tables_to_skip = [2] # which tables NOT to label
+        rows_to_skip = [[],[],[],[],[]] # which rows NOT to label
+        columns_to_skip = [[],[0],[],[],[]] # which columns NOT to label
+        skippers = {"tables": tables_to_skip, "rows": rows_to_skip, "cols": columns_to_skip}
         size_case =[2,1.2,2,1.5] # size of each case [2,2,2,2] is the standard case
-        create_case(path_book,POPPLER_PATH,NUMBER_LABEL_PATH,choose_cases,size_case ,num_book,pages=[2,-1])
+        create_case(path_book,POPPLER_PATH,NUMBER_LABEL_PATH,size_tables,size_case ,num_book,pages=[2,-1],skip = skippers)
     if mode==1:
-        row_1=np.array([])
-        col_1=np.array([])
-        row_2=np.array([2,3,4,5])
-        col_2=np.array([0])
-        choose_cases=[row_1[:, None],col_1,row_2[:, None],col_2]
-        size_case =[2,1.2,2,1.5] # size of each case [2,2,2,2] is the standard case
+        tables_to_skip = [2] # which tables NOT to label
+        rows_to_skip = [[],[],[],[],[]] # which rows NOT to label
+        columns_to_skip = [[],[0],[],[],[]] # which columns NOT to label
+        skippers = {"tables": tables_to_skip, "rows": rows_to_skip, "cols": columns_to_skip}
+        size_case =[2,2,2,2] # size of each case [2,2,2,2] is the standard case
         create_case(path_book,POPPLER_PATH,WIND_LABEL_PATH,choose_cases,size_case ,num_book,pages=[2,-1])
 
     if mode==2:
@@ -145,9 +142,15 @@ def main(path_book,POPPLER_PATH,num_book=0,mode=3,size_tables= [[9,10],[9,10]]):
         #make directory if not exist:
         if not os.path.exists(directory):
             os.makedirs(directory)
-        choose_cases=[[],[],[],[]]
+
         size_case =[2,2,2,2] # size of each case [2,2,2,2] is the standard case
-        create_case(path_book,POPPLER_PATH,directory,size_tables,choose_cases,size_case,num_book,[0,-1],False , True)
+        only_position = False
+        labeling = False
+
+        page_counter, success_counter = create_case(path_book,POPPLER_PATH,directory,size_tables,size_case,num_book,[0,-1], labeling, only_position)
+        return page_counter, success_counter
+    if mode == 7:
+        pass
 
     return 0
 
@@ -185,7 +188,7 @@ if __name__ == "__main__":
     with open(table_formats, 'r') as csvfile:
         datareader = csv.reader(csvfile)
         for i,csv_line in enumerate(datareader):
-            if i==0: continue
+            if i==0: continue #skip information line in csv
             year, station, measure_times, rows, table1_cols, table2_cols, rows34, table3_cols, table4_cols = csv_line
 
             measure_times = measure_times.replace(" ","")[1:-1]
@@ -194,18 +197,29 @@ if __name__ == "__main__":
                 assert len(measure_times) == int(rows)
             except AssertionError or ValueError:
                 print("Assertion or Value error, rows variable: ", rows)
-            size_table = [[int(rows),int(table1_cols)],[int(rows),int(table2_cols)], [int(rows34),int(table3_cols)],[int(rows34),int(table4_cols)]]
+            size_table = [[int(rows),int(table1_cols)],[int(rows),int(table2_cols)],[3,1], [int(rows34),int(table3_cols)],[int(rows34),int(table4_cols)]]
             path_to_book = os.path.join(all_pdf_path,station.upper(),station+"_"+year+"_mod.pdf")
 
             book_paths.append(path_to_book)
             table_sizes.append(size_table)
 
-    for i, (table_size, book_path) in enumerate(zip(table_sizes, book_paths)):
-        if i<115: continue
-        answer = input(f"Read book {book_path}? yes/no")
-        if answer == "yes":
-            main(book_path, POPPLER_PATH, i, mode, table_size)
 
+    total_pages_checked = 0
+    total_tables_identified = [0, 0, 0, 0, 0]
+    for i, (table_size, book_path) in enumerate(zip(table_sizes, book_paths)):
+        main(book_path, POPPLER_PATH, i, 0, table_size)
+        #if i<2: continue #Hardcode bypass to choose book
+
+        answer = "yes"
+        #answer = input(f"Read book {book_path}? yes/no")
+        if answer == "yes":
+            page_counter, success_counter = main(book_path, POPPLER_PATH, i, mode, table_size)
+            total_pages_checked += page_counter
+            total_tables_identified = [i + j for i,j in zip(total_tables_identified,success_counter)]
+        print(f"Book number: {i} done")
+        print(f"Total pages checked so far: {total_pages_checked}")
+        print(f"Total success: {total_tables_identified}")
+        print("Percentage so far: ", [i/total_pages_checked for i in total_tables_identified])
     for row in format_list:
         format_list2.append(row.split(";"))
         #print(row)

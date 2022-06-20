@@ -192,8 +192,8 @@ def get_pos(binary_tables,size_tables, only_top_table=False, original_image = No
     NB_TABLES = 5 # total expected number of tables
     MIN_NB_PIXELS = 400 # minimum number of pixels that an array must have to be considered as such
     L_SENSIBILITY = [1.1,1.2,1.4,1.6,1.8,2,2.2,2.4,2.6,2.8,3]# different sensitivities tested to obtain the right dimension of tables, sensitivity of 1 means very little sensitive (detected few lines) and >1 higher sensitivity (detected more lines)
-    GOOD_DIMS = [[size_tables[0][0],size_tables[0][1]],[size_tables[1][0],size_tables[1][1]],[3, 1], [size_tables[2][0],size_tables[2][1]], [size_tables[3][0],size_tables[3][1]]]# expected table dimensions
-    ACCEPTED_DIMS = [[size_tables[0][0],size_tables[0][1]],[size_tables[1][0],size_tables[1][1]],[3, 1], [size_tables[2][0],size_tables[2][1]], [size_tables[3][0],size_tables[3][1]]] #possible table dimensions (even if some need correction)
+    GOOD_DIMS =  size_tables # expected table dimensions
+
 
     l_size3=[[] for k in range(NB_TABLES)]
     list_pos3=[[] for k in range(NB_TABLES)]
@@ -241,32 +241,35 @@ def get_pos(binary_tables,size_tables, only_top_table=False, original_image = No
             order.append(3000*list_pos_tab[k][0]+list_pos_tab[k][1])
         list_pos=sort_insertion(list_pos,order)
         l_size=sort_insertion(l_size,order)
-        print("real_size:",l_size)
-        print("wanted: ", GOOD_DIMS)
+        #print("real_size:",l_size)
+        #print("wanted: ", GOOD_DIMS)
+        if len(l_size)>0:
+            list_pos,l_size = remove_col(l_size,size_tables,list_pos,n_table =  0,nb_remove = 1) #Remove leading column
+            list_pos,l_size = remove_line(l_size,size_tables,list_pos,n_table =  0,nb_remove = 1) #Remove top row
+        if len(l_size)>1:
+            list_pos,l_size = remove_line(l_size,size_tables,list_pos,n_table =  1,nb_remove = 2) #Remove top two rows
+        if len(l_size)>3:
+            if l_size[3][1] == GOOD_DIMS[3][1]+1:
+                list_pos,l_size = remove_col(l_size,size_tables,list_pos,n_table =  3,nb_remove = 1)
+            if l_size[3][0] == GOOD_DIMS[3][0]+1:
+                list_pos,l_size = remove_line(l_size,size_tables,list_pos,n_table =  3,nb_remove = 1)
+        if len(l_size)>4:
+            if l_size[4][0] == GOOD_DIMS[4][0]+1:
+                list_pos,l_size = remove_line(l_size,size_tables,list_pos,n_table =  4,nb_remove = 1)
 
-        list_pos,l_size = remove_col(l_size,size_tables,list_pos,n_table =  0,nb_remove = 1) #Remove leading column
-        list_pos,l_size = remove_line(l_size,size_tables,list_pos,n_table =  0,nb_remove = 1) #Remove top row
-        list_pos,l_size = remove_line(l_size,size_tables,list_pos,n_table =  1,nb_remove = 2) #Remove top two rows
-        if l_size[3][1] == GOOD_DIMS[3][1]+1:
-            list_pos,l_size = remove_col(l_size,size_tables,list_pos,n_table =  3,nb_remove = 1)
-        if l_size[3][0] == GOOD_DIMS[3][0]+1:
-            list_pos,l_size = remove_line(l_size,size_tables,list_pos,n_table =  3,nb_remove = 1)
-        if l_size[4][0] == GOOD_DIMS[4][0]+1:
-            list_pos,l_size = remove_line(l_size,size_tables,list_pos,n_table =  4,nb_remove = 1)
-
-        print("after remove:",l_size)
+        #print("after remove:",l_size)
 
 
 
 
         if(len(l_size)>len(GOOD_DIMS)):
 
-            print("hej len(l_size)>len(GOOD_DIMS)")
-            debug_plotter(original_image,list_pos,l_size, printer = False)
+            #print("hej len(l_size)>len(GOOD_DIMS)")
+            #debug_plotter(original_image,list_pos,l_size, printer = False)
             list_pos2=[]
             l_size2 = []
             for k,dim in enumerate(l_size):
-                if dim in ACCEPTED_DIMS:
+                if dim in GOOD_DIMS:
                     #ACCEPTED_DIMS.remove(dim) # discard duplicates
                     list_pos2.append(list_pos[k])
                     l_size2.append(dim)
@@ -285,8 +288,9 @@ def get_pos(binary_tables,size_tables, only_top_table=False, original_image = No
         # If we only care about table 0 and 1 (which we do):
         if only_top_table:
             if l_size3[0] == size_tables[0] and l_size3[1] == size_tables[1]:
-                print("Success!")
-                print("final size:",l_size3)
+                print("Success! final size:",l_size3)
+
+
                 if original_image is not None:
                     debug_plotter(original_image,list_pos3,l_size3, printer = False)
                 else:
